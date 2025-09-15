@@ -1,0 +1,95 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { z } from 'zod';
+
+// PATCH /api/buyers/[id]/notes - Add a note to buyer
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    // Check if user is authenticated
+    if (!session?.user) {
+      return NextResponse.json(
+        { message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const buyerId = params.id;
+
+    // Check if buyer exists
+    const existingBuyer = await db.buyer.findUnique({
+      where: {
+        id: buyerId,
+      },
+    });
+    
+    // Buyer existence check already handled above
+    
+    // Verify ownership or admin status
+    if (existingBuyer.ownerId !== session.user.id && session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { message: 'Unauthorized: You do not have permission to add notes to this buyer' },
+        { status: 403 }
+      );
+    }
+
+    if (!existingBuyer) {
+      return NextResponse.json(
+        { message: 'Buyer not found' },
+        { status: 404 }
+      );
+    }
+
+    // Parse and validate request body
+    const body = await req.json();
+    const schema = z.object({
+      note: z.string().min(1, { message: 'Note cannot be empty' }),
+    });
+    
+    const { note } = schema.parse(body);
+
+    // Update buyer notes (append new note)
+    const currentNotes = existingBuyer.notes || '';
+    const timestamp = new Date().toISOString();
+    const formattedNote = `[${timestamp}] ${note}\n\n${currentNotes}`;
+    
+    const updatedBuyer = await db.buyer.update({
+      where: {
+        id: buyerId,
+      },
+      data: {
+        notes: formattedNote,
+      },
+    });
+
+    // Create history entry for note addition
+    await db.buyerHistory.create({
+      data: {
+        buyerId,
+        action: 'NOTE_ADDED',
+        details: note,
+        changedById: session.user.id,
+      },
+    });
+
+    return NextResponse.json(updatedBuyer);
+  } catch (error) {
+    console.error('Error adding buyer note:', error);
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { message: 'Validation error', errors: error.errors },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
