@@ -2,80 +2,58 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { StatusSchema } from "@/lib/validations/buyer";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 
+// PATCH /api/buyers/[id]/status - Update buyer status
 export async function PATCH(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // ✅ App Router compatible
 ) {
   try {
-    const { id: buyerId } = context.params;
-
-    // Auth check
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Find buyer
-    const existingBuyer = await db.buyer.findUnique({
-      where: { id: buyerId },
-    });
+    const { id: buyerId } = await context.params;
+
+    const existingBuyer = await db.buyer.findUnique({ where: { id: buyerId } });
     if (!existingBuyer) {
       return NextResponse.json({ message: "Buyer not found" }, { status: 404 });
     }
 
-    // Verify ownership or admin
-    if (
-      existingBuyer.ownerId !== session.user.id &&
-      session.user.role !== "ADMIN"
-    ) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+    if (existingBuyer.ownerId !== session.user.id && session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { message: "Unauthorized: You cannot update this buyer status" },
+        { status: 403 }
+      );
     }
 
-    // Parse request body
     const body = await req.json();
     const schema = z.object({
-      status: StatusSchema,
-      note: z.string().optional(),
+      status: z.string().min(1, { message: "Status is required" }),
     });
-    const { status, note } = schema.parse(body);
+    const { status } = schema.parse(body);
 
-    // Update buyer
     const updatedBuyer = await db.buyer.update({
       where: { id: buyerId },
-      data: { status },
+      data: { status: status as Status },
     });
 
-    // Save history
     await db.buyerHistory.create({
       data: {
         buyerId,
         changedById: session.user.id,
-        diff: {
-          action: "STATUS_CHANGED",
-          from: existingBuyer.status,
-          to: status,
-          note: note ?? null,
-        },
+        diff: { status },
       },
     });
 
     return NextResponse.json(updatedBuyer);
   } catch (error) {
     console.error("Error updating buyer status:", error);
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { message: "Validation error", errors: error.format() },
-        { status: 400 }
-      );
+    if (error instanceof ZodError) {
+      return NextResponse.json({ message: "Validation error", errors: error.format() }, { status: 400 });
     }
-
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }
