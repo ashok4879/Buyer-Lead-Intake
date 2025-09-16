@@ -3,45 +3,36 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+
 // PATCH /api/buyers/[id]/notes - Add a note to buyer
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // Updated type
 ) {
   try {
     const session = await getServerSession(authOptions);
 
-    // Check if user is authenticated
     if (!session?.user) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const buyerId = params.id;
+    // Await params to get the buyer ID
+    const { id: buyerId } = await context.params;
 
     // Check if buyer exists
     const existingBuyer = await db.buyer.findUnique({
-      where: {
-        id: buyerId,
-      },
+      where: { id: buyerId },
     });
-    
-    // Buyer existence check already handled above
-    
-    // Verify ownership or admin status
-    if (existingBuyer?.ownerId !== session.user.id && session.user.role !== 'ADMIN') {
+
+    if (!existingBuyer) {
+      return NextResponse.json({ message: 'Buyer not found' }, { status: 404 });
+    }
+
+    // Verify ownership or admin
+    if (existingBuyer.ownerId !== session.user.id && session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { message: 'Unauthorized: You do not have permission to add notes to this buyer' },
         { status: 403 }
-      );
-    }
-
-    if (!existingBuyer) {
-      return NextResponse.json(
-        { message: 'Buyer not found' },
-        { status: 404 }
       );
     }
 
@@ -50,31 +41,28 @@ export async function PATCH(
     const schema = z.object({
       note: z.string().min(1, { message: 'Note cannot be empty' }),
     });
-    
     const { note } = schema.parse(body);
 
-    // Update buyer notes (append new note)
+    // Append new note with timestamp
     const currentNotes = existingBuyer.notes || '';
     const timestamp = new Date().toISOString();
     const formattedNote = `[${timestamp}] ${note}\n\n${currentNotes}`;
-    
+
+    // Update buyer notes
     const updatedBuyer = await db.buyer.update({
-      where: {
-        id: buyerId,
-      },
+      where: { id: buyerId },
+      data: { notes: formattedNote },
+    });
+
+    // Create buyer history entry
+    await db.buyerHistory.create({
       data: {
-        notes: formattedNote,
+        buyerId,
+        changedById: session.user.id,
+        diff: { note },
       },
     });
 
-    // Create history entry for note addition
-    await db.buyerHistory.create({
-  data: {
-    buyerId,
-    changedById: session.user.id,
-    diff: { note: note }, // store note in the diff JSON
-  },
-});
     return NextResponse.json(updatedBuyer);
   } catch (error) {
     console.error('Error adding buyer note:', error);
@@ -84,9 +72,6 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
