@@ -7,26 +7,28 @@ import toast from 'react-hot-toast';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email) return;
 
     setIsLoading(true);
     setErrorMessage('');
 
     try {
+      // Use credentials provider (Demo login)
       const result = await signIn('credentials', {
         redirect: false,
         email,
-        password,
       });
 
       if (result?.error) throw new Error(result.error);
+
+      // Success
+      toast.success('Logged in successfully!');
       router.push('/');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -41,7 +43,7 @@ export default function SignIn() {
     <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight">
-          Sign in to your account
+          Sign in
         </h2>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -53,18 +55,7 @@ export default function SignIn() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              placeholder="you@example.com"
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
             />
           </div>
@@ -79,6 +70,10 @@ export default function SignIn() {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        <p className="mt-4 text-center text-sm text-gray-600">
+          Enter your email to log in. A demo account will be created if it doesn’t exist.
+        </p>
       </div>
     </div>
   );
