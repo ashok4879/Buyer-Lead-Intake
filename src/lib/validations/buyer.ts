@@ -71,8 +71,8 @@ export const buyerFormSchema = z.object({
   propertyType: PropertyTypeSchema,
   bhk: BHKSchema.optional(),
   purpose: PurposeSchema,
-  minBudget: z.number().optional(),   // ✅ changed from budgetMin
-  maxBudget: z.number().optional(),   // ✅ changed from budgetMax
+  budgetMin: z.number().optional(),
+  budgetMax: z.number().optional(), 
   timeline: TimelineSchema,
   source: SourceSchema,
   status: StatusSchema.default('New'),

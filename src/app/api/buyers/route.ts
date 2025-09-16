@@ -4,11 +4,12 @@ import { authOptions } from '@/lib/auth';
 import { buyerFormSchema } from '@/lib/validations/buyer';
 import { db } from '@/lib/db';
 import { parseTagsString } from '@/lib/utils';
+import { ZodError } from 'zod';
 
 // Helper to safely parse budget strings
 const parseBudget = (value: string | null | undefined): number | undefined => {
   if (!value) return undefined;
-  const numeric = value.replace(/[^\d.]/g, ''); // remove ₹, commas, spaces
+  const numeric = value.replace(/[^\d.]/g, '');
   return numeric ? Number(numeric) : undefined;
 };
 
@@ -55,8 +56,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(buyer, { status: 201 });
   } catch (error: any) {
     console.error('Error creating buyer:', error);
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ message: 'Validation error', errors: error.errors }, { status: 400 });
+    if (error instanceof ZodError) {
+      return NextResponse.json({ message: 'Validation error', errors: error.format() }, { status: 400 });
     }
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
     const budgetMin = parseBudget(url.searchParams.get('minBudget'));
     const budgetMax = parseBudget(url.searchParams.get('maxBudget'));
 
-    const page = parseInt(url.searchParams.get('page') || '1', 10);
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
     const limit = parseInt(url.searchParams.get('limit') || '10', 10);
     const skip = (page - 1) * limit;
 
@@ -107,7 +108,7 @@ export async function GET(req: NextRequest) {
     if (status) where.status = status;
 
     if (budgetMin !== undefined || budgetMax !== undefined) {
-      where.AND = [];
+      if (!where.AND) where.AND = [];
       if (budgetMin !== undefined) where.AND.push({ budgetMin: { gte: budgetMin } });
       if (budgetMax !== undefined) where.AND.push({ budgetMax: { lte: budgetMax } });
     }
