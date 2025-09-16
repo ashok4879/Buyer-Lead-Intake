@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { buyerFormSchema } from '@/lib/validations/buyer';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
 import { parseTagsString } from '@/lib/utils';
 
 // Helper to safely parse budget strings
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     const tags = parseTagsString(validatedData.tags || '');
 
-    const buyer = await prisma.buyer.create({
+    const buyer = await db.buyer.create({
       data: {
         fullName: validatedData.fullName,
         email: validatedData.email,
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await prisma.buyerHistory.create({
+    await db.buyerHistory.create({
       data: {
         buyerId: buyer.id,
         changedById: session.user.id,
@@ -112,8 +112,8 @@ export async function GET(req: NextRequest) {
       if (budgetMax !== undefined) where.AND.push({ budgetMax: { lte: budgetMax } });
     }
 
-    const total = await prisma.buyer.count({ where });
-    const buyers = await prisma.buyer.findMany({
+    const total = await db.buyer.count({ where });
+    const buyers = await db.buyer.findMany({
       where,
       skip,
       take: limit,

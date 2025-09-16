@@ -2,10 +2,10 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import EmailProvider from "next-auth/providers/email";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "./db";
+import { db } from "./db";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(db),
   session: {
     strategy: "jwt",
   },
@@ -38,7 +38,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // For demo purposes, create or find a user with the provided email
-        const user = await prisma.user.upsert({
+        const user = await db.user.upsert({
           where: { email: credentials.email },
           update: {},
           create: {
@@ -57,7 +57,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub;
         
         // Fetch user from database to get role
-        const user = await prisma.user.findUnique({
+        const user = await db.user.findUnique({
           where: { id: token.sub },
           select: { role: true },
         });
