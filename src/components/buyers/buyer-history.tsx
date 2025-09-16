@@ -4,11 +4,11 @@ import { BuyerHistory as BuyerHistoryType } from '@prisma/client';
 import { formatDate } from '@/lib/utils';
 
 type HistoryWithUser = BuyerHistoryType & {
-  user: {
+  changedBy: {
     name: string | null;
     email: string | null;
     image: string | null;
-  } | null;
+  };
 };
 
 interface BuyerHistoryProps {
@@ -34,31 +34,28 @@ export function BuyerHistory({ history }: BuyerHistoryProps) {
           <div key={entry.id} className="border-b pb-4 last:border-0 last:pb-0">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center">
-                {entry.user?.image ? (
+                {entry.changedBy?.image ? (
                   <img 
-                    src={entry.user.image} 
-                    alt={entry.user.name || 'User'} 
+                    src={entry.changedBy.image} 
+                    alt={entry.changedBy.name || 'User'} 
                     className="w-6 h-6 rounded-full mr-2"
                   />
                 ) : (
                   <div className="w-6 h-6 bg-gray-200 rounded-full mr-2 flex items-center justify-center text-xs">
-                    {entry.user?.name?.charAt(0) || 'U'}
+                    {entry.changedBy?.name?.charAt(0) || 'U'}
                   </div>
                 )}
                 <span className="text-sm font-medium">
-                  {entry.user?.name || entry.user?.email || 'Unknown user'}
+                  {entry.changedBy?.name || entry.changedBy?.email || 'Unknown user'}
                 </span>
               </div>
               <span className="text-xs text-gray-500">
-                {formatDate(entry.createdAt)}
+                {formatDate(entry.changedAt)}
               </span>
             </div>
             
             <div className="text-sm">
-              <span className="font-medium">{entry.action}</span>
-              {entry.note && (
-                <p className="text-gray-600 mt-1">{entry.note}</p>
-              )}
+              <pre className="text-gray-600">{JSON.stringify(entry.diff, null, 2)}</pre>
             </div>
           </div>
         ))}

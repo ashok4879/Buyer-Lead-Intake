@@ -29,7 +29,8 @@ interface Buyer {
   name: string;
   email: string;
   phone: string;
-  budget: number;
+  budgetMin: number | null;
+  budgetMax: number | null;
   city: string;
   propertyType: string;
   bhk: string;
@@ -66,7 +67,7 @@ export function BuyerList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
+
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [pagination, setPagination] = useState<PaginationData>({
     total: 0,
@@ -77,14 +78,12 @@ export function BuyerList({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch buyers when filters change
   useEffect(() => {
     const fetchBuyers = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        // Build query string from filters
         const params = new URLSearchParams();
         if (search) params.append('search', search);
         if (city) params.append('city', city);
@@ -100,7 +99,7 @@ export function BuyerList({
         params.append('limit', limit.toString());
 
         const response = await fetch(`/api/buyers?${params.toString()}`);
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch buyers');
         }
@@ -132,7 +131,6 @@ export function BuyerList({
     limit,
   ]);
 
-  // Handle pagination
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', newPage.toString());
@@ -151,11 +149,7 @@ export function BuyerList({
     return (
       <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4">
         <p>{error}</p>
-        <Button 
-          variant="outline" 
-          className="mt-2"
-          onClick={() => router.refresh()}
-        >
+        <Button variant="outline" className="mt-2" onClick={() => router.refresh()}>
           Try Again
         </Button>
       </div>
@@ -185,73 +179,45 @@ export function BuyerList({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Requirements
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Budget
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tags
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date Added
-                </th>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Requirements</th>
+                <th>Budget</th>
+                <th>Status</th>
+                <th>Tags</th>
+                <th>Date Added</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {buyers.map((buyer) => (
-                <tr 
-                  key={buyer.id} 
+                <tr
+                  key={buyer.id}
                   className="hover:bg-gray-50 cursor-pointer"
                   onClick={() => router.push(`/buyers/${buyer.id}`)}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {buyer.name}
-                    </div>
+                  <td>{buyer.name}</td>
+                  <td>
+                    <div>{buyer.email}</div>
+                    <div>{buyer.phone}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{buyer.email}</div>
-                    <div className="text-sm text-gray-500">{buyer.phone}</div>
+                  <td>
+                    <div>{buyer.city.replace('_', ' ')} | {buyer.propertyType.replace('_', ' ')}</div>
+                    <div>{buyer.bhk.replace('_', ' ')} | {buyer.purpose.replace('_', ' ')}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {buyer.city.replace('_', ' ')} | {buyer.propertyType.replace('_', ' ')}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {buyer.bhk.replace('_', ' ')} | {buyer.purpose.replace('_', ' ')}
-                    </div>
+                  <td>
+                    {buyer.budgetMin !== null || buyer.budgetMax !== null
+                      ? `${buyer.budgetMin !== null ? formatCurrency(buyer.budgetMin) : 'N/A'} - ${buyer.budgetMax !== null ? formatCurrency(buyer.budgetMax) : 'N/A'}`
+                      : 'N/A'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {formatCurrency(buyer.budget)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge status={buyer.status} />
-                  </td>
-                  <td className="px-6 py-4">
+                  <td><StatusBadge status={buyer.status} /></td>
+                  <td>
                     <div className="flex flex-wrap gap-1">
                       {parseTagsString(buyer.tags).map((tag, index) => (
-                        <TagChip key={index} tag={tag} />
+                        <TagChip key={index} text={tag} />
                       ))}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {formatDate(buyer.createdAt)}
-                    </div>
-                  </td>
+                  <td>{formatDate(buyer.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -259,7 +225,6 @@ export function BuyerList({
         </div>
       </div>
 
-      {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between mt-6">
           <div className="text-sm text-gray-700">
@@ -278,18 +243,16 @@ export function BuyerList({
             >
               Previous
             </Button>
-            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(
-              (pageNum) => (
-                <Button
-                  key={pageNum}
-                  variant={pageNum === pagination.page ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handlePageChange(pageNum)}
-                >
-                  {pageNum}
-                </Button>
-              )
-            )}
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <Button
+                key={pageNum}
+                variant={pageNum === pagination.page ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handlePageChange(pageNum)}
+              >
+                {pageNum}
+              </Button>
+            ))}
             <Button
               variant="outline"
               size="sm"

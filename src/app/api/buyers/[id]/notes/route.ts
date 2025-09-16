@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { prisma as db } from '@/lib/db';
 import { z } from 'zod';
-
 // PATCH /api/buyers/[id]/notes - Add a note to buyer
 export async function PATCH(
   req: NextRequest,
@@ -32,7 +31,7 @@ export async function PATCH(
     // Buyer existence check already handled above
     
     // Verify ownership or admin status
-    if (existingBuyer.ownerId !== session.user.id && session.user.role !== 'ADMIN') {
+    if (existingBuyer?.ownerId !== session.user.id && session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { message: 'Unauthorized: You do not have permission to add notes to this buyer' },
         { status: 403 }
@@ -70,20 +69,18 @@ export async function PATCH(
 
     // Create history entry for note addition
     await db.buyerHistory.create({
-      data: {
-        buyerId,
-        action: 'NOTE_ADDED',
-        details: note,
-        changedById: session.user.id,
-      },
-    });
-
+  data: {
+    buyerId,
+    changedById: session.user.id,
+    diff: { note: note }, // store note in the diff JSON
+  },
+});
     return NextResponse.json(updatedBuyer);
   } catch (error) {
     console.error('Error adding buyer note:', error);
-    if (error.name === 'ZodError') {
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { message: 'Validation error', errors: error.errors },
+        { message: 'Validation error', errors: error.format() },
         { status: 400 }
       );
     }

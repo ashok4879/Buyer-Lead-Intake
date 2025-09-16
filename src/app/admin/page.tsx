@@ -78,8 +78,8 @@ export default async function AdminDashboardPage() {
         <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300">
           <h2 className="text-lg font-semibold mb-2">Conversion Rate</h2>
           <p className="text-3xl font-bold">
-            {stats.statusCounts.find(s => s.status === 'Converted')
-              ? Math.round((stats.statusCounts.find(s => s.status === 'Converted')!._count / stats.buyerCount) * 100)
+            {stats.statusCounts.find((s: { status: string }) => s.status === 'Converted')
+              ? Math.round((stats.statusCounts.find((s: { status: string }) => s.status === 'Converted')!._count / stats.buyerCount) * 100)
               : 0}%
           </p>
         </div>
@@ -88,8 +88,8 @@ export default async function AdminDashboardPage() {
           <h2 className="text-lg font-semibold mb-2">Active Leads</h2>
           <p className="text-3xl font-bold">
             {stats.buyerCount -
-              (stats.statusCounts.find(s => s.status === 'Converted')?._count || 0) -
-              (stats.statusCounts.find(s => s.status === 'Dropped')?._count || 0)}
+              (stats.statusCounts.find((s: { status: string }) => s.status === 'Converted')?._count || 0) -
+              (stats.statusCounts.find((s: { status: string }) => s.status === 'Dropped')?._count || 0)}
           </p>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default async function AdminDashboardPage() {
         <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300">
           <h2 className="text-xl font-semibold mb-4">Status Distribution</h2>
           <div className="space-y-4">
-            {stats.statusCounts.map((status) => {
+            {stats.statusCounts.map((status: { status: string; _count: number }) => {
               const width = (status._count / stats.buyerCount) * 100;
               return (
                 <div key={status.status} className="flex items-center">
@@ -123,7 +123,7 @@ export default async function AdminDashboardPage() {
         <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300">
           <h2 className="text-xl font-semibold mb-4">Source Distribution</h2>
           <div className="space-y-4">
-            {stats.sourceCounts.map((source) => {
+            {stats.sourceCounts.map((source: { source: string; _count: number }) => {
               const width = (source._count / stats.buyerCount) * 100;
               return (
                 <div key={source.source} className="flex items-center">
@@ -149,7 +149,7 @@ export default async function AdminDashboardPage() {
         <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300">
           <h2 className="text-xl font-semibold mb-4">Recent Buyers</h2>
           <div className="divide-y">
-            {stats.recentBuyers.map((buyer) => (
+            {stats.recentBuyers.map((buyer: { id: string; fullName: string; email?: string; phone?: string; status: string; owner: { name?: string; email: string } }) => (
               <div key={buyer.id} className="py-3 animate-fadeIn">
                 <div className="flex justify-between items-center">
                   <div>
@@ -175,7 +175,7 @@ export default async function AdminDashboardPage() {
         <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300">
           <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
           <div className="divide-y">
-            {stats.recentHistory.map((history) => (
+            {stats.recentHistory.map((history: { id: string; action: string; details?: string; createdAt: Date; buyer: { fullName: string }; user: { name?: string; email: string } }) => (
               <div key={history.id} className="py-3 animate-fadeIn">
                 <div className="flex justify-between items-start">
                   <div>

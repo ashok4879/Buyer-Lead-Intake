@@ -1,19 +1,14 @@
 'use client';
-
 import { useState } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
-
 export function UserMenu() {
   const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
-
   const toggleMenu = () => setIsOpen(!isOpen);
-
   if (status === 'loading') {
     return <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>;
   }
-
   if (status === 'unauthenticated') {
     return (
       <Link

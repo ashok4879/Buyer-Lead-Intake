@@ -1,404 +1,103 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-
-import {
-  buyerFormSchema,
-  type BuyerFormValues,
-  CitySchema,
-  PropertyTypeSchema,
-  BHKSchema,
-  PurposeSchema,
-  TimelineSchema,
-  SourceSchema,
-  StatusSchema
-} from '@/lib/validations/buyer';
-
+import { useForm, Controller } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
-  FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
+  FormControl,
 } from '@/components/ui/form';
 import {
   Select,
-  SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectContent,
+  SelectItem,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { type BuyerFormValues } from '@/lib/validations/buyer';
 
 interface BuyerFormProps {
   initialData?: BuyerFormValues;
   isEditing?: boolean;
+  serverAction?: (formData: FormData) => Promise<void>;
 }
 
-export function BuyerForm({ initialData, isEditing = false }: BuyerFormProps) {
-  const router = useRouter();
+export function BuyerForm({ initialData, isEditing = false, serverAction }: BuyerFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize form with react-hook-form and zod validation
   const form = useForm<BuyerFormValues>({
-    resolver: zodResolver(buyerFormSchema),
     defaultValues: initialData || {
-      name: '',
+      fullName: '',
       email: '',
       phone: '',
-      budget: 0,
-      city: 'MUMBAI',
-      propertyType: 'APARTMENT',
-      bhk: 'TWO_BHK',
-      purpose: 'END_USE',
-      timeline: 'THREE_MONTHS',
-      source: 'WEBSITE',
-      status: 'NEW',
+      city: 'Chandigarh',
+      propertyType: 'Apartment',
+      purpose: 'Buy',
+      bhk: '',
+      timeline: '',
+      source: '',
+      status: 'New',
+      minBudget: '', // ✅ string
+      maxBudget: '', // ✅ string
       tags: '',
       notes: '',
     },
   });
 
-  // Form submission handler
-  async function onSubmit(data: BuyerFormValues) {
+  const handleSubmit = async (data: BuyerFormValues) => {
+    if (!serverAction) return;
+
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/buyers', {
-        method: isEditing ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+      const formData = new FormData();
+
+      // Append all fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (key === 'minBudget' || key === 'maxBudget') {
+          formData.append(key, value ? value.toString() : '');
+        } else {
+          formData.append(key, value?.toString() ?? '');
+        }
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Something went wrong');
-      }
-
-      const result = await response.json();
-      toast.success(isEditing ? 'Buyer updated successfully!' : 'Buyer created successfully!');
-      router.push(`/buyers/${result.id}`);
-      router.refresh();
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to submit form');
+      await serverAction(formData);
+    } catch (err) {
+      console.error('Form submit error:', err);
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
+
+  // Enum options
+  const cities = ['Chandigarh', 'Mohali', 'Zirakpur', 'Panchkula', 'Other'];
+  const propertyTypes = ['Apartment', 'Villa', 'Plot', 'Office', 'Retail'];
+  const purposes = ['Buy', 'Rent'];
+  const bhks = ['Studio', 'One', 'Two', 'Three', 'Four'];
+  const timelines = ['0-3m', '3-6m', '>6m', 'Exploring'];
+  const sources = ['Website', 'Referral', 'Walk-in', 'Call', 'Other'];
+  const statuses = ['New', 'Qualified', 'Contacted', 'Visited', 'Negotiation', 'Converted', 'Dropped'];
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {/* Name Field */}
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Email Field */}
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input type="email" placeholder="john@example.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Phone Field */}
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Phone</FormLabel>
-                <FormControl>
-                  <Input placeholder="+91 9876543210" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Budget Field */}
-          <FormField
-            control={form.control}
-            name="budget"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Budget (₹)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="5000000"
-                    {...field}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* City Field */}
-          <FormField
-            control={form.control}
-            name="city"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>City</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a city" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(CitySchema.enum).map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city.replace('_', ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Property Type Field */}
-          <FormField
-            control={form.control}
-            name="propertyType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Property Type</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select property type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(PropertyTypeSchema.enum).map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type.replace('_', ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* BHK Field */}
-          <FormField
-            control={form.control}
-            name="bhk"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>BHK</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select BHK" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(BHKSchema.enum).map((bhk) => (
-                      <SelectItem key={bhk} value={bhk}>
-                        {bhk.replace('_', ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Purpose Field */}
-          <FormField
-            control={form.control}
-            name="purpose"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Purpose</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select purpose" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(PurposeSchema.enum).map((purpose) => (
-                      <SelectItem key={purpose} value={purpose}>
-                        {purpose.replace('_', ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Timeline Field */}
-          <FormField
-            control={form.control}
-            name="timeline"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Timeline</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select timeline" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(TimelineSchema.enum).map((timeline) => (
-                      <SelectItem key={timeline} value={timeline}>
-                        {timeline.replace('_', ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Source Field */}
-          <FormField
-            control={form.control}
-            name="source"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Source</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select source" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(SourceSchema.enum).map((source) => (
-                      <SelectItem key={source} value={source}>
-                        {source.replace('_', ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Status Field */}
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(StatusSchema.enum).map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status.replace('_', ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Tags Field */}
-          <FormField
-            control={form.control}
-            name="tags"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tags</FormLabel>
-                <FormControl>
-                  <Input placeholder="premium, urgent, vip" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Comma separated tags
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Notes Field - Full Width */}
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        {/* Full Name */}
         <FormField
           control={form.control}
-          name="notes"
-          render={({ field }) => (
+          name="fullName"
+          render={({ field }: { field: { value: string; onChange: (value: string) => void; } }) => (
             <FormItem>
-              <FormLabel>Notes</FormLabel>
+              <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Additional information about the buyer"
-                  className="min-h-[100px]"
-                  {...field}
+                <Input 
+                  placeholder="Enter full name"
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
                 />
               </FormControl>
               <FormMessage />
@@ -406,11 +105,175 @@ export function BuyerForm({ initialData, isEditing = false }: BuyerFormProps) {
           )}
         />
 
+        {/* Email */}
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }: { field: { value: string; onChange: (value: string) => void } }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Enter email" 
+                  type="email"
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Phone */}
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }: { field: { value: string; onChange: (value: string) => void } }) => (
+            <FormItem>
+              <FormLabel>Phone</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Enter phone"
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Enum selects */}
+        {[
+          { name: 'city', options: cities },
+          { name: 'propertyType', options: propertyTypes },
+          { name: 'purpose', options: purposes },
+          { name: 'bhk', options: bhks },
+          { name: 'timeline', options: timelines },
+          { name: 'source', options: sources },
+          { name: 'status', options: statuses },
+        ].map(({ name, options }) => (
+          <FormField
+            key={name}
+            control={form.control}
+            name={name as keyof BuyerFormValues}
+            render={({ field }: { field: { value: string; onChange: (value: string) => void } }) => (
+              <FormItem>
+                <FormLabel>{name.charAt(0).toUpperCase() + name.slice(1)}</FormLabel>
+                <FormControl>
+                  <Controller
+                    name={name as keyof BuyerFormValues}
+                    control={form.control}
+                    render={({ field: ctrlField }: { field: { value: string; onChange: (value: string) => void } }) => (
+                      <Select value={ctrlField.value} onValueChange={ctrlField.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={`Select ${name}`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {options.map((opt) => (
+                            <SelectItem key={opt} value={opt}>
+                              {opt}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ))}
+
+        {/* Budget */}
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="minBudget"
+            render={({ field }: { field: { value: string; onChange: (value: string) => void } }) => (
+              <FormItem>
+                <FormLabel>Min Budget</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter minimum budget"
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    type="number"
+                    {...field}
+                    placeholder="Enter minimum budget"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="maxBudget"
+            render={({ field }: { field: { value: string; onChange: (value: string) => void } }) => (
+              <FormItem>
+                <FormLabel>Max Budget</FormLabel>
+                <FormControl>
+                  <Input
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    type="number"
+                    {...field}
+                    placeholder="Enter maximum budget"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Tags */}
+        <FormField
+          control={form.control}
+          name="tags"
+          render={({ field }: { field: { value: string; onChange: (value: string) => void } }) => (
+            <FormItem>
+              <FormLabel>Tags</FormLabel>
+              <FormControl>
+                <Input 
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  placeholder="Comma-separated tags"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Notes */}
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }: { field: { value: string; onChange: (value: string) => void } }) => (
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
+              <FormControl>
+                <Textarea 
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  placeholder="Additional info"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Buttons */}
         <div className="flex justify-end space-x-4">
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.back()}
+            onClick={() => window.history.back()}
             disabled={isSubmitting}
           >
             Cancel

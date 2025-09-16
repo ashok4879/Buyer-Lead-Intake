@@ -1,84 +1,93 @@
 import { z } from 'zod';
 
-// Enum validation schemas
+// ------------------
+// Enum validation schemas (match Prisma enums)
+// ------------------
+
 export const CitySchema = z.enum([
-  'MUMBAI',
-  'THANE',
-  'NAVI_MUMBAI',
-  'OTHER'
+  'Chandigarh',
+  'Mohali',
+  'Zirakpur',
+  'Panchkula',
+  'Other',
 ]);
 
 export const PropertyTypeSchema = z.enum([
-  'APARTMENT',
-  'VILLA',
-  'PLOT',
-  'COMMERCIAL',
-  'OTHER'
+  'Apartment',
+  'Villa',
+  'Plot',
+  'Office',
+  'Retail',
 ]);
 
 export const BHKSchema = z.enum([
-  'ONE_RK',
-  'ONE_BHK',
-  'TWO_BHK',
-  'THREE_BHK',
-  'FOUR_PLUS_BHK',
-  'OTHER'
+  'Studio',
+  'One',
+  'Two',
+  'Three',
+  'Four',
 ]);
 
 export const PurposeSchema = z.enum([
-  'INVESTMENT',
-  'END_USE',
-  'UNDECIDED'
+  'Buy',
+  'Rent',
 ]);
 
 export const TimelineSchema = z.enum([
-  'IMMEDIATE',
-  'THREE_MONTHS',
-  'SIX_MONTHS',
-  'ONE_YEAR',
-  'MORE_THAN_YEAR'
+  'ZeroToThreeMonths',   // 0-3m
+  'ThreeToSixMonths',    // 3-6m
+  'MoreThanSixMonths',   // >6m
+  'Exploring',
 ]);
 
 export const SourceSchema = z.enum([
-  'WEBSITE',
-  'REFERRAL',
-  'DIRECT',
-  'PARTNER',
-  'OTHER'
+  'Website',
+  'Referral',
+  'WalkIn',
+  'Call',
+  'Other',
 ]);
 
 export const StatusSchema = z.enum([
-  'NEW',
-  'CONTACTED',
-  'QUALIFIED',
-  'PROPOSAL',
-  'NEGOTIATION',
-  'CLOSED_WON',
-  'CLOSED_LOST'
+  'New',
+  'Qualified',
+  'Contacted',
+  'Visited',
+  'Negotiation',
+  'Converted',
+  'Dropped',
 ]);
 
+// ------------------
 // Buyer form validation schema
+// ------------------
+
 export const buyerFormSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
-  email: z.string().email({ message: 'Please enter a valid email address' }),
+  fullName: z.string().min(2, { message: 'Name must be at least 2 characters' }),
+  email: z.string().email({ message: 'Please enter a valid email address' }).optional(),
   phone: z.string().min(10, { message: 'Phone number must be at least 10 digits' }),
-  budget: z.coerce.number().min(1, { message: 'Budget must be greater than 0' }),
   city: CitySchema,
   propertyType: PropertyTypeSchema,
-  bhk: BHKSchema,
+  bhk: BHKSchema.optional(),
   purpose: PurposeSchema,
+  minBudget: z.number().optional(),   // ✅ changed from budgetMin
+  maxBudget: z.number().optional(),   // ✅ changed from budgetMax
   timeline: TimelineSchema,
   source: SourceSchema,
-  status: StatusSchema.default('NEW'),
+  status: StatusSchema.default('New'),
   tags: z.string().optional(),
   notes: z.string().optional(),
+  attachmentUrl: z.string().url().nullable().optional(),
 });
 
-// Type for the form data
+// Type for Buyer form
 export type BuyerFormValues = z.infer<typeof buyerFormSchema>;
 
-// Buyer search/filter validation schema
+// ------------------
+// Buyer search/filter schema
+// ------------------
+
 export const buyerFilterSchema = z.object({
   search: z.string().optional(),
   city: CitySchema.optional(),
@@ -88,8 +97,8 @@ export const buyerFilterSchema = z.object({
   timeline: TimelineSchema.optional(),
   source: SourceSchema.optional(),
   status: StatusSchema.optional(),
-  minBudget: z.coerce.number().optional(),
-  maxBudget: z.coerce.number().optional(),
+  minBudget: z.number().optional(),
+  maxBudget: z.number().optional(),
 });
 
 export type BuyerFilterValues = z.infer<typeof buyerFilterSchema>;

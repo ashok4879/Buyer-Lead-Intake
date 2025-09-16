@@ -16,28 +16,35 @@ export const metadata = {
 export default async function BuyersPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const session = await getServerSession(authOptions);
+  // ✅ await before using
+  const params = await searchParams;
 
-  // Redirect to login if not authenticated
+  const session = await getServerSession(authOptions);
   if (!session) {
     redirect('/auth/signin');
   }
 
-  // Parse search params for filtering
-  const search = typeof searchParams.search === 'string' ? searchParams.search : '';
-  const city = typeof searchParams.city === 'string' ? searchParams.city : undefined;
-  const propertyType = typeof searchParams.propertyType === 'string' ? searchParams.propertyType : undefined;
-  const bhk = typeof searchParams.bhk === 'string' ? searchParams.bhk : undefined;
-  const purpose = typeof searchParams.purpose === 'string' ? searchParams.purpose : undefined;
-  const timeline = typeof searchParams.timeline === 'string' ? searchParams.timeline : undefined;
-  const source = typeof searchParams.source === 'string' ? searchParams.source : undefined;
-  const status = typeof searchParams.status === 'string' ? searchParams.status : undefined;
-  const minBudget = typeof searchParams.minBudget === 'string' ? searchParams.minBudget : undefined;
-  const maxBudget = typeof searchParams.maxBudget === 'string' ? searchParams.maxBudget : undefined;
-  const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1;
-  const limit = typeof searchParams.limit === 'string' ? parseInt(searchParams.limit) : 10;
+  const search = typeof params.search === 'string' ? params.search : '';
+  const city = typeof params.city === 'string' ? params.city : undefined;
+  const propertyType =
+    typeof params.propertyType === 'string' ? params.propertyType : undefined;
+  const bhk = typeof params.bhk === 'string' ? params.bhk : undefined;
+  const purpose =
+    typeof params.purpose === 'string' ? params.purpose : undefined;
+  const timeline =
+    typeof params.timeline === 'string' ? params.timeline : undefined;
+  const source = typeof params.source === 'string' ? params.source : undefined;
+  const status = typeof params.status === 'string' ? params.status : undefined;
+
+  const minBudgetStr =
+    typeof params.minBudget === 'string' ? params.minBudget : undefined;
+  const maxBudgetStr =
+    typeof params.maxBudget === 'string' ? params.maxBudget : undefined;
+
+  const page = typeof params.page === 'string' ? parseInt(params.page, 10) : 1;
+  const limit = typeof params.limit === 'string' ? parseInt(params.limit, 10) : 10;
 
   return (
     <div className="container mx-auto py-10">
@@ -49,9 +56,7 @@ export default async function BuyersPage({
           </p>
         </div>
         <Link href="/buyers/new">
-          <Button>
-            Add New Lead
-          </Button>
+          <Button>Add New Lead</Button>
         </Link>
       </div>
 
@@ -66,10 +71,11 @@ export default async function BuyersPage({
             timeline={timeline}
             source={source}
             status={status}
-            minBudget={minBudget}
-            maxBudget={maxBudget}
+            minBudget={minBudgetStr}
+            maxBudget={maxBudgetStr}
           />
         </div>
+
         <div className="md:col-span-3">
           <Suspense fallback={<div>Loading...</div>}>
             <BuyerList
@@ -81,8 +87,8 @@ export default async function BuyersPage({
               timeline={timeline}
               source={source}
               status={status}
-              minBudget={minBudget}
-              maxBudget={maxBudget}
+              minBudget={minBudgetStr}
+              maxBudget={maxBudgetStr}
               page={page}
               limit={limit}
             />
