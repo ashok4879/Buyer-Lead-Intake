@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma as db } from '@/lib/db';
+import { db } from '@/lib/db';
 import { z } from 'zod';
 // PATCH /api/buyers/[id]/notes - Add a note to buyer
 export async function PATCH(

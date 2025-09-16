@@ -1,5 +1,5 @@
 // src/app/buyers/[id]/page.tsx
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { redirect, notFound } from 'next/navigation';
@@ -14,7 +14,7 @@ export default async function BuyerDetailPage({ params }: { params: { id: string
   if (!buyerId) notFound();
 
   // Fetch buyer with history
-  const buyer = await prisma.buyer.findUnique({
+  const buyer = await db.buyer.findUnique({
     where: { id: buyerId },
     include: {
       history: {
@@ -29,7 +29,7 @@ export default async function BuyerDetailPage({ params }: { params: { id: string
   // Server action to update buyer
   async function updateBuyer(formData: FormData) {
     'use server';
-    await prisma.buyer.update({
+    await db.buyer.update({
       where: { id: buyerId },
       data: {
         fullName: formData.get('fullName')?.toString() ?? '',

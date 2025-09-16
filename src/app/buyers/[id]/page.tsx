@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth/next';
 
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
 import BuyerDetail from '@/components/buyers/buyer-detail';
 import { BuyerHistory } from '@/components/buyers/buyer-history';
 
@@ -21,7 +21,7 @@ async function getBuyer(id: string) {
     redirect('/auth/signin');
   }
 
-  const buyer = await prisma.buyer.findUnique({
+  const buyer = await db.buyer.findUnique({
     where: { id },
     include: {
       history: {
