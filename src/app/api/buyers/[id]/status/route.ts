@@ -37,7 +37,7 @@ export async function PATCH(
 
     const updatedBuyer = await db.buyer.update({
       where: { id: buyerId },
-      data: { status: status as Status },
+      data: { status },
     });
 
     await db.buyerHistory.create({

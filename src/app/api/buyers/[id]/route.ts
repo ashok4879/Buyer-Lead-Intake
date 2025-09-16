@@ -55,7 +55,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       data: {
         buyerId,
         changedById: session.user.id,
-        action: "STATUS_UPDATED",
+        type: "STATUS_UPDATED",
         details: `Status changed to ${status}`,
       },
     });
