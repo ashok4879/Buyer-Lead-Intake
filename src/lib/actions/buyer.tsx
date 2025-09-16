@@ -1,6 +1,6 @@
 'use server'; // MUST be server-only
 
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -40,7 +40,7 @@ export async function addBuyer(formData: FormData) {
   const minBudget = formData.get('minBudget')?.toString();
   const maxBudget = formData.get('maxBudget')?.toString();
 
-  await prisma.buyer.create({
+  await db.buyer.create({
     data: {
       fullName,
       email,
